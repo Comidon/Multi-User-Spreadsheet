@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NetworkController</name>
+    </assembly>
+    <members>
+        <member name="T:NetworkController.SocketState">
+            <summary>
+            This class holds all the necessary state to represent a socket connection
+            Note that all of its fields are public because we are using it like a "struct"
+            It is a simple collection of fields
+            </summary>
+        </member>
+        <member name="T:NetworkController.ConnectionState">
+            <summary>
+            A new type of state class to hold a TcpListener plus the delegate. 
+            </summary>
+        </member>
+        <member name="T:NetworkController.Networking">
+            <summary>
+            This class holds all the general purposed networling static methods
+            </summary>
+        </member>
+        <member name="M:NetworkController.Networking.MakeSocket(System.String,System.Net.Sockets.Socket@,System.Net.IPAddress@)">
+            <summary>
+            Creates a Socket object for the given host string
+            </summary>
+            <param name="hostName">The host name or IP address</param>
+            <param name="socket">The created Socket</param>
+            <param name="ipAddress">The created IPAddress</param>
+        </member>
+        <member name="M:NetworkController.Networking.ConnectToServer(NetworkController.NetworkAction,System.String)">
+            <summary>
+            Start attempting to connect to the server
+            </summary>
+            <param name="hostName"> server to connect to </param>
+            <returns></returns>
+        </member>
+        <member name="M:NetworkController.Networking.ConnectedCallback(System.IAsyncResult)">
+            <summary>
+            This function is "called" by the operating system when the remote site acknowledges connect request
+            </summary>
+            <param name="ar"></param>
+        </member>
+        <member name="M:NetworkController.Networking.ReceiveCallback(System.IAsyncResult)">
+            <summary>
+            This function is "called" by the operating system when data is available on the socket
+            </summary>
+            <param name="ar"></param>
+        </member>
+        <member name="M:NetworkController.Networking.GetData(NetworkController.SocketState)">
+            <summary>
+            GetData is just a wrapper for BeginReceive.
+            This is the public entry point for asking for data.
+            Necessary so that we can separate networking concerns from client concerns.
+            </summary>
+            <param name="state"></param>
+        </member>
+        <member name="M:NetworkController.Networking.Send(System.Net.Sockets.Socket,System.String)">
+            <summary>
+            This function (along with its helper 'SendCallback') will allow a program to send data over a socket. 
+            This function needs to convert the data into bytes and then send them using socket.BeginSend.
+            </summary>
+            <param name="state"></param>
+            <param name="message"></param>
+        </member>
+        <member name="M:NetworkController.Networking.SendCallback(System.IAsyncResult)">
+            <summary>
+            This function assists the Send function. 
+            It should extract the Socket out of the IAsyncResult, and then call socket.EndSend.
+            </summary>
+            <param name="ar"></param>
+        </member>
+        <member name="M:NetworkController.Networking.ServerAwaitingClientLoop(NetworkController.NetworkAction,System.Int32)">
+            <summary>
+            This is the heart of the server code. It should start a TcpListener for new connections and pass the listener,
+            along with the callMe delegate, to BeginAcceptSocket as the state parameter.
+            </summary>
+            <param name="call"></param>
+            <param name="port"></param>
+        </member>
+        <member name="M:NetworkController.Networking.AcceptNewClient(System.IAsyncResult)">
+            <summary>
+            This is the callback that BeginAcceptSocket should use.
+            This code will be invoked by the OS when a connection request comes in. 
+            </summary>
+            <param name="ar"></param>
+        </member>
+    </members>
+</doc>
