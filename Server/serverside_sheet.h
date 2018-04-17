@@ -18,14 +18,14 @@ public:
 	std::string edit(std::string cell, std::string content);
 	std::string get_sheet();
 	std::string undo();
-	std::string reverse(std::string cellname);
+	std::string revert(std::string cellname);
 	int size();
 	void reset_undo();
 
 private:
 	//std::string filename;
 	std::map<std::string, std::string> cells;
-	std::map<std::string, std::vector<std::string> > reverse_map;
+	std::map<std::string, std::vector<std::string> > revert_map;
 	std::stack<std::pair<std::string, std::string> > undo_stack;
 };
 #endif

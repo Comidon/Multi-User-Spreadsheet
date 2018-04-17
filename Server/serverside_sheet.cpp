@@ -10,15 +10,15 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 		std::pair<std::string, std::string> temp(cell, "");
 		undo_stack.push(temp);
 		std::vector<std::string> res_stack;
-		reverse_map[cell] = std::vector<string>();
-		reverse_map[cell].push_back("");
+		revert_map[cell] = std::vector<string>();
+		revert_map[cell].push_back("");
 	}
 
 	else
 	{
 		std::pair<std::string, std::string> temp(cell, cells[cell]);
 		undo_stack.push(temp);
-		reverse_map[cell].push_back(cells[cell]);
+		revert_map[cell].push_back(cells[cell]);
 	}
 
 	// If there were no circuluar dependencies, it is safe to add to the graph.
@@ -55,7 +55,7 @@ std::string serverside_sheet::undo()
 	return result;
 }
 
-std::string serverside_sheet::reverse(std::string cellname)
+std::string serverside_sheet::revert(std::string cellname)
 {
 
 }
