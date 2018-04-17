@@ -1,5 +1,6 @@
 #ifndef SERVERSIDE_SHEET_H
 #define SERVERSIDE_SHEET_H
+// Last Modified : April 17th, 2018
 
 #include <map>
 #include <string>
@@ -11,10 +12,16 @@
 
 class serverside_sheet
 {
+private:
+	//std::string filename;
+	std::map<std::string, std::string> cells;
+	std::map<std::string, std::vector<std::string> > revert_map;
+	std::stack<std::pair<std::string, std::string> > undo_stack;
+
 public:
-	spreadsheet_graph() {};
+	serverside_sheet() {};
 	//spreadsheet_graph(std::string filename, bool exist) {};
-	~spreadsheet_graph() {};
+	~serverside_sheet() {};
 	std::string edit(std::string cell, std::string content);
 	std::string get_sheet();
 	std::string undo();
@@ -22,10 +29,5 @@ public:
 	int size();
 	void reset_undo();
 
-private:
-	//std::string filename;
-	std::map<std::string, std::string> cells;
-	std::map<std::string, std::vector<std::string> > revert_map;
-	std::stack<std::pair<std::string, std::string> > undo_stack;
 };
 #endif

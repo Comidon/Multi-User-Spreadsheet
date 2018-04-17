@@ -2,12 +2,13 @@
  *
  * Team : Bluefly
  *
- * Last Modified : April 10th, 2018
+ // Last Modified : April 17th, 2018
+
  */
 
 #ifndef SERVER_H
 #define SERVER_H
-
+#include "serverside_sheet.h"
 #include <string>
 #include <iostream>
 #include <stdio.h>
@@ -31,6 +32,7 @@
 #include <sstream>
 #include <fstream>
 
+
 class server
 {
 public:
@@ -41,21 +43,32 @@ public:
 	~server();
 
 private:
-	void open();
-	void process_request(int socket, std::string input, bool * registered);
-	void process_register(int socket, bool * registered);
-	void process_disconnect(int socket, bool * registered);
-	void process_load(int socket, std::string s, bool * registered);
-	void process_ping(int socket, bool * registered);
-	void process_ping_response(int socket, bool * registered);
-	void process_edit(int socket, std::string s, bool * registered);
-	void process_focus(int socket, std::string s, bool * registered);
-	void process_unfocus(int socket, bool * registered);
-	void process_undo(int socket, bool * registered);
-	void process_revert(int socket, std::string s, bool * registered);
-	std::vector<std::string> parse_command(std::string input);
-
 	std::vector<int> *sockets;
+	std::vector<std::string> *ssnamelist;
+	std::map<int, std::string> *socket_user_map;
+	// <socket,spreadsheet_name>
+	std::map<int, std::string> *socket_ssn_map;
+	// <spreadsheet_name,spreadsheet_object>
+	std::map<std::string, std::serverside_sheet*> *ssn_sso_map;
+
+	void open();
+	void process_request(int socket, std::string input, bool registered);
+	// show all spreadsheet on the server. use std::vector to store all
+	// string names of ss
+	void process_register(int socket, bool registered);
+	void process_disconnect(int socket, bool registered);
+
+	// user chose one ss and load. 1.if contains 2.true: load; false: create
+	void process_load(int socket, std::string s, bool registered);
+	void process_ping(int socket, bool registered);
+	void process_ping_response(int socket, bool registered);
+	void process_edit(int socket, std::string s, bool registered);
+	void process_focus(int socket, std::string s, bool registered);
+	void process_unfocus(int socket, bool registered);
+	void process_undo(int socket, bool registered);
+	void process_revert(int socket, std::string s, bool registered);
+	std::vector<std::string> parse_content(std::string input);
+
 };
 
 #endif

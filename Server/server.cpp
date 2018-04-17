@@ -2,9 +2,8 @@
  *
  * Team : Bluefly
  *
- * Last Modified : April 10th, 2018
+ * Last Modified : April 17th, 2018
  */
-
 #include "server.h"
 
 // helper function for socket connection purposes
@@ -206,7 +205,7 @@ void *get_in_addr(struct sockaddr *sa)
 */
 void server::listen_to_client(int socket)
 {
-	bool registered = false;  // Bool used for authentication flag for this sockeerver_end’ was not t.
+	bool registered = false;  // Bool used for authentication flag for this sockeerver_endï¿½ was not t.
 	std::string temp = "";
 	int received;             // How much data has come through on the socket.
 	while (1)
@@ -233,17 +232,83 @@ void server::listen_to_client(int socket)
 }
 
 /*
+* Send a specified string over the specified socket with
+* a newline character appended to the end.
+*/
+void server::send_message(int socket, std::string temp)
+{
+	// Allocate enough space in the char array for the string + \n
+	char * cstr = new char[temp.length() ];
+	std::strcpy(cstr, temp.c_str());
+	//cstr[temp.length()] = '\n';
+	send(socket, cstr, (temp.length()), 0);
+}
+
+/*
 * Takes in the message sent from the client,  figures out what
 * the message is, and call the correct function associated with
 * that message.
 */
-void server::process_request(int socket, std::string input, bool * registered)
+void server::process_request(int socket, std::string input, bool registered)
 {
-	std::vector<std::string> v = parse_command(input);
-	if (v[0] == "register")
-		process_register(socket, registered);
-	else // Junk recieved... send error 2
-		send_message(socket, "error 2 " + input);
+	std::istringstream iss(input);
+	std::string word;
+
+	std::string key = iss >> word;
+	std::string content = iss >> word;
+
+	switch (key)
+	{
+		case "register":
+			process_register(socket, registered);
+			break;
+
+		case "disconnect":
+			process_disconnect(socket, registered);
+			break;
+
+		case "load":
+			std::string ssname = content;
+			process_load(socket, ssname, registered);
+			break;
+
+		case "ping":
+			process_ping(socket, registered);
+			break;
+
+		case "ping_response":
+			process_ping_response(socket, registered);
+			break;
+
+		case "edit":
+			std::string content = content;
+			process_edit(socket, content,registered);
+			break;
+
+		case "focus":
+		  std::string cellid = content;
+			process_focus(socket,cellname, registered);
+			break;
+
+		case "unfocus":
+			process_unfocus(socket, registered);
+			break;
+
+		case "undo":
+			process_undo(socket, registered);
+			break;
+
+		case "revert":
+		  std::string cellid = content;
+			process_revert(socket,cellid, registered);
+			break;
+
+		default:
+			break;
+
+	}
+	//else // Junk recieved... send error 2
+		//send_message(socket, "error 2 " + input);
 }
 
 /*
@@ -251,80 +316,66 @@ void server::process_request(int socket, std::string input, bool * registered)
 * allow them to connect, open the specified spreadsheet (index 2) and associate
 * the user with the spreadsheet graph so they can do things to it.
 */
-void server::process_register(int socket, bool * registered)
+void server::process_register(int socket, bool registered)
 {
 
-	// This flag is used in other functions to make sure that 
-	// a socket trying to make changes has been approved to 
+	// This flag is used in other functions to make sure that
+	// a socket trying to make changes has been approved to
 	// make changes.
 	*registered = true;
-
 	send_message(socket, "connected");
 }
 
-/*
-* Send a specified string over the specified socket with
-* a newline character appended to the end.
-*/
-void server::send_message(int socket, std::string temp)
-{
-	// Allocate enough space in the char array for the string + \n
-	char * cstr = new char[temp.length() + 1];
-	std::strcpy(cstr, temp.c_str());
-	cstr[temp.length()] = '\n';
 
-	send(socket, cstr, (temp.length() + 1), 0);
+void server::process_disconnect(int socket, bool registered)
+{
+
+
 }
 
-/*
-* Splits a string depending on its spaces. If there are no spaces,
-* returns the same single string in the vector. If there is one space,
-* returns two strings separated by that space in the vector. If there
-* are two spaces or more, returns the string split up into three strings
-* divided by the first and second spaces. All remaining spaces are ignored.
-*/
-std::vector<std::string> server::parse_command(std::string input)
+void server::process_load(int socket, std::string ss, bool registered)
 {
-	int first_space = 0;
-	int second_space = 0;
-	std::vector<std::string> result;
 
-	// find positions of the first 2 empty spaces to parse string
-	for (int i = 0; i < input.length(); i++)
-	{
-		if (input[i] == ' ')
-			if (first_space == 0)
-				first_space = i;
-			else
-			{
-				second_space = i;
-				break;
-			}
-	}
 
-	// If there were no spaces, simply put the string back
-	// in the vector as one.
-	if (!first_space && !second_space)
-		result.push_back(input);
+}
 
-	// If there was only one space, put the two space-separated
-	// strings into the vector
-	else if (!second_space)
-	{
-		std::string first_one = input.substr(0, first_space);
-		std::string second_one = input.substr(first_space + 1, input.length() - first_space - 1);
-		result.push_back(first_one);
-		result.push_back(second_one);
-	}
-	// If there were two spaces, put the three first-and-second-space
-	// separated strings into the vector.
-	else if (first_space && second_space)
-	{
-		result.push_back(input.substr(0, first_space));
-		// cell name
-		result.push_back(input.substr(first_space + 1, second_space - first_space - 1));
-		// contents
-		result.push_back(input.substr(second_space + 1, input.length() - second_space - 1));
-	}
-	return result;
+void server::process_ping(int socket, bool registered)
+{
+
+
+}
+
+void server::process_ping_response(int socket, bool registered)
+{
+
+
+}
+
+void server::process_edit(int socket, std::string content, bool registered)
+{
+	// call parse_content(content) -> parse to "cell,cell_content" by ':'
+
+}
+
+void server::process_focus(int socket, std::string cell, bool registered)
+{
+
+
+}
+
+void server::process_unfocus(int socket, bool registered)
+{
+
+
+}
+
+void server::process_undo(int socket, bool registered)
+{
+
+
+}
+
+void server::process_revert(int socket, std::string cell, bool registered)
+{
+
 }
