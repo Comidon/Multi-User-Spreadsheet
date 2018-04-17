@@ -44,6 +44,15 @@ private:
 	void open();
 	void process_request(int socket, std::string input, bool * registered);
 	void process_register(int socket, bool * registered);
+	void process_disconnect(int socket, bool * registered);
+	void process_load(int socket, std::string s, bool * registered);
+	void process_ping(int socket, bool * registered);
+	void process_ping_response(int socket, bool * registered);
+	void process_edit(int socket, std::string s, bool * registered);
+	void process_focus(int socket, std::string s, bool * registered);
+	void process_unfocus(int socket, bool * registered);
+	void process_undo(int socket, bool * registered);
+	void process_revert(int socket, std::string s, bool * registered);
 	std::vector<std::string> parse_command(std::string input);
 
 	std::vector<int> *sockets;

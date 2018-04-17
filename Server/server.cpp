@@ -20,7 +20,6 @@ int main()
 {
 	// Default port 2112
 	int port = 2112;
-	// Simply kick off the server listening for connections (the servers main running state). 
 	std::cout << "Server on work." << std::endl;
 	iserver->listen_for_connections(int_to_string(port));
 	return 0;
