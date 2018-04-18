@@ -2,7 +2,7 @@
  *
  * Team : Bluefly
  *
- * Last Modified : April 17th, 2018
+ * Last Modified : April 18th, 2018
  */
 #include "server.h"
 
@@ -84,7 +84,7 @@ server::server()
 	sockets = new std::vector<int>();
 	ssnamelist = new std::vector<std::string>();
 	socket_user_map = new std::map<int, std::string>();
-  socket_ssn_map = new std::map<int, std::string>();
+	socket_ssn_map = new std::map<int, std::string>();
 	ssn_sso_map = new std::map<std::string, serverside_sheet*>();
 	ssn_socketset_map = new std::map<std::string, std::set<int> >();
 }
