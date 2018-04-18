@@ -16,9 +16,16 @@ serverside_sheet::serverside_sheet(std::string filename)
 		if (infile.fail())
 			break;
 
-		// not finishied
+		string::size_type pos;
+		pos = line.find(':', 0);
+
+		std::string cell_name = line.substr(0, pos);
+		std::string cell_content = line.substr(pos + 1);
+
+		this->cells.insert(std::pair<std::string,std::string>(cell_name,cell_content));
 
 	}
+	infile.close();
 
 }
 
