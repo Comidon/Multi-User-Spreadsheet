@@ -237,11 +237,7 @@ void server::listen_to_client(int socket)
 */
 void server::send_message(int socket, std::string temp)
 {
-	// Allocate enough space in the char array for the string + \n
-	char * cstr = new char[temp.length() ];
-	std::strcpy(cstr, temp.c_str());
-	//cstr[temp.length()] = '\n';
-	send(socket, cstr, (temp.length()), 0);
+	send(socket, temp.c_str(), temp.length(), 0);
 }
 
 /*
@@ -251,64 +247,60 @@ void server::send_message(int socket, std::string temp)
 */
 void server::process_request(int socket, std::string input )
 {
-	std::istringstream iss(input);
-	std::string word;
+	string::size_type pos;
+	pos = input.find(' ', 0);
 
-	std::string key = iss >> word;
-	std::string content = iss >> word;
+	std::string key = input.substr(0, pos);
+	std::string content = input.substr(pos + 1);
 
 	switch (key)
 	{
-		case "register":
-			process_register(socket);
-			break;
+	case "register":
+		process_register(socket);
+		break;
 
-		case "disconnect":
-			process_disconnect(socket);
-			break;
+	case "disconnect":
+		process_disconnect(socket);
+		break;
 
-		case "load":
-			std::string ssname = content;
-			process_load(socket, ssname);
-			break;
+	case "load":
+		process_load(socket, content);
+		break;
 
-		case "ping":
-			process_ping(socket);
-			break;
+	case "ping":
+		process_ping(socket);
+		break;
 
-		case "ping_response":
-			process_ping_response(socket);
-			break;
+	case "ping_response":
+		process_ping_response(socket);
+		break;
 
-		case "edit":
-			std::string content = content;
-			process_edit(socket, content,registered);
-			break;
+	case "edit":
+		process_edit(socket, content);
+		break;
 
-		case "focus":
-		  std::string cellid = content;
-			process_focus(socket,cellname);
-			break;
+	case "focus":
+		process_focus(socket, content);
+		break;
 
-		case "unfocus":
-			process_unfocus(socket);
-			break;
+	case "unfocus":
+		process_unfocus(socket);
+		break;
 
-		case "undo":
-			process_undo(socket);
-			break;
+	case "undo":
+		process_undo(socket);
+		break;
 
-		case "revert":
-		  std::string cellid = content;
-			process_revert(socket,cellid);
-			break;
+	case "revert":
+		process_revert(socket, content);
+		break;
 
-		default:
-			break;
+	default:
+		break;
 
 	}
 	//else // Junk recieved... send error 2
-		//send_message(socket, "error 2 " + input);
+	//send_message(socket, "error 2 " + input);
 }
 
 /*
@@ -329,8 +321,10 @@ void server::process_register(int socket )
 
 void server::process_disconnect(int socket )
 {
-
-
+	//(*ssn_socketset_map)[(*socket_ssn_map)[socket]].
+	close(socket);
+	std::cout << "client disconnected" << std::endl;
+	pthread_exit(NULL); // Kill this thread
 }
 
 void server::process_load(int socket, std::string ss )
@@ -409,29 +403,51 @@ void server::process_ping_response(int socket )
 
 void server::process_edit(int socket, std::string content )
 {
-	// call parse_content(content) -> parse to "cell,cell_content" by ':'
+	string::size_type pos;
+	pos = content.find(':', 0);
 
+	std::string cell_name = content.substr(0, pos);
+	std::string cell_content = content.substr(pos + 1);
+
+	std::string update = (*ssn_sso_map)[(*socket_ssn_map)[socket]]->edit(cell_name, cell_content);
+
+	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*sockets).end(); ++it)
+	{
+		send_message(*it, update);
+	}
 }
 
 void server::process_focus(int socket, std::string cell )
 {
-
-
+	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*sockets).end(); ++it)
+	{
+		send_message(*it, "focus " + cellname + ":");
+	}
 }
 
 void server::process_unfocus(int socket )
 {
-
-
+	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*sockets).end(); ++it)
+	{
+		send_message(*it, "unfocus ");
+	}
 }
 
 void server::process_undo(int socket )
 {
+	std::string update = (*ssn_sso_map)[(*socket_ssn_map)[socket]]->undo;
 
-
+	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*sockets).end(); ++it)
+	{
+		send_message(*it, update);
+	}
 }
 
 void server::process_revert(int socket, std::string cell )
 {
-
+	std::string update = (*ssn_sso_map)[(*socket_ssn_map)[socket]]->revert(cell);
+	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*sockets).end(); ++it)
+	{
+		send_message(*it, update);
+	}
 }
