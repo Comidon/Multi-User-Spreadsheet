@@ -315,7 +315,8 @@ void server::process_register(int socket )
 	// a socket trying to make changes has been approved to
 	// make changes.
 	//registered = true;
-	send_message(socket, "connected");
+	send_message(socket, "connected_accepted ");
+	send_message(socket, (char)3);
 }
 
 
