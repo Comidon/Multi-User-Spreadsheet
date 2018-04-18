@@ -249,7 +249,7 @@ void server::send_message(int socket, std::string temp)
 * the message is, and call the correct function associated with
 * that message.
 */
-void server::process_request(int socket, std::string input, bool registered)
+void server::process_request(int socket, std::string input )
 {
 	std::istringstream iss(input);
 	std::string word;
@@ -260,24 +260,24 @@ void server::process_request(int socket, std::string input, bool registered)
 	switch (key)
 	{
 		case "register":
-			process_register(socket, registered);
+			process_register(socket);
 			break;
 
 		case "disconnect":
-			process_disconnect(socket, registered);
+			process_disconnect(socket);
 			break;
 
 		case "load":
 			std::string ssname = content;
-			process_load(socket, ssname, registered);
+			process_load(socket, ssname);
 			break;
 
 		case "ping":
-			process_ping(socket, registered);
+			process_ping(socket);
 			break;
 
 		case "ping_response":
-			process_ping_response(socket, registered);
+			process_ping_response(socket);
 			break;
 
 		case "edit":
@@ -287,20 +287,20 @@ void server::process_request(int socket, std::string input, bool registered)
 
 		case "focus":
 		  std::string cellid = content;
-			process_focus(socket,cellname, registered);
+			process_focus(socket,cellname);
 			break;
 
 		case "unfocus":
-			process_unfocus(socket, registered);
+			process_unfocus(socket);
 			break;
 
 		case "undo":
-			process_undo(socket, registered);
+			process_undo(socket);
 			break;
 
 		case "revert":
 		  std::string cellid = content;
-			process_revert(socket,cellid, registered);
+			process_revert(socket,cellid);
 			break;
 
 		default:
@@ -316,66 +316,81 @@ void server::process_request(int socket, std::string input, bool registered)
 * allow them to connect, open the specified spreadsheet (index 2) and associate
 * the user with the spreadsheet graph so they can do things to it.
 */
-void server::process_register(int socket, bool registered)
+void server::process_register(int socket )
 {
 
 	// This flag is used in other functions to make sure that
 	// a socket trying to make changes has been approved to
 	// make changes.
-	*registered = true;
+	//registered = true;
 	send_message(socket, "connected");
 }
 
 
-void server::process_disconnect(int socket, bool registered)
+void server::process_disconnect(int socket )
 {
 
 
 }
 
-void server::process_load(int socket, std::string ss, bool registered)
+void server::process_load(int socket, std::string ss )
+{
+	// if the spreadsheetname vector contains the ss, load
+	if(std::find(*ssnamelist.begin(), *ssnamelist.end(), ss) != *ssnamelist.end())
+	{
+		// append .txt and convert ss string to char*
+		ss.append(".txt");
+		const char *ssfile = ss.c_str();
+		// requires that the ss file to be under the current directory
+		std::ifstream infile(ssfile);
+		std::string line;
+		
+		}
+	// otherwise, create
+	else {
+	}
+
+
+
+}
+
+void server::process_ping(int socket )
 {
 
 
 }
 
-void server::process_ping(int socket, bool registered)
+void server::process_ping_response(int socket )
 {
 
 
 }
 
-void server::process_ping_response(int socket, bool registered)
-{
-
-
-}
-
-void server::process_edit(int socket, std::string content, bool registered)
+void server::process_edit(int socket, std::string content )
 {
 	// call parse_content(content) -> parse to "cell,cell_content" by ':'
 
 }
 
-void server::process_focus(int socket, std::string cell, bool registered)
+void server::process_focus(int socket, std::string cell )
 {
 
 
 }
 
-void server::process_unfocus(int socket, bool registered)
+void server::process_unfocus(int socket )
 {
 
 
 }
 
-void server::process_undo(int socket, bool registered)
+void server::process_undo(int socket )
 {
 
 
 }
 
-void server::process_revert(int socket, std::string cell, bool registered)
+void server::process_revert(int socket, std::string cell )
 {
 
 }

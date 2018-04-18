@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <cstring>
 #include <vector>
+#include <algorithm>
 #include <map>
 #include <unistd.h>
 #include <pthread.h>
@@ -52,21 +53,21 @@ private:
 	std::map<std::string, std::serverside_sheet*> *ssn_sso_map;
 
 	void open();
-	void process_request(int socket, std::string input, bool registered);
+	void process_request(int socket, std::string input);
 	// show all spreadsheet on the server. use std::vector to store all
 	// string names of ss
-	void process_register(int socket, bool registered);
-	void process_disconnect(int socket, bool registered);
+	void process_register(int socket);
+	void process_disconnect(int socket);
 
 	// user chose one ss and load. 1.if contains 2.true: load; false: create
-	void process_load(int socket, std::string s, bool registered);
-	void process_ping(int socket, bool registered);
-	void process_ping_response(int socket, bool registered);
-	void process_edit(int socket, std::string s, bool registered);
-	void process_focus(int socket, std::string s, bool registered);
-	void process_unfocus(int socket, bool registered);
-	void process_undo(int socket, bool registered);
-	void process_revert(int socket, std::string s, bool registered);
+	void process_load(int socket, std::string s);
+	void process_ping(int socket);
+	void process_ping_response(int socket );
+	void process_edit(int socket, std:: string s);
+	void process_focus(int socket, std::string s);
+	void process_unfocus(int socket);
+	void process_undo(int socket);
+	void process_revert(int socket, std::string s);
 	std::vector<std::string> parse_content(std::string input);
 
 };
