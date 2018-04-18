@@ -26,8 +26,5 @@ public:
 	std::set<string> get_sheet();
 	std::string undo();
 	std::string revert(std::string cellname);
-	int size();
-	void reset_undo();
-
 };
 #endif

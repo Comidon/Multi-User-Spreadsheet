@@ -87,15 +87,16 @@ std::string serverside_sheet::undo()
 
 std::string serverside_sheet::revert(std::string cellname)
 {
+	if (revert_map[cellname] == 0)
+		return "";
+	std::string content = revert_map[cellname].back();
+	revert_map[cellname].pop_back();
 
-}
+	std::pair<std::string, std::string> temp(cell, cells[cell]);
+	undo_stack.push(temp);
 
-int serverside_sheet::size()
-{
+	cells[cellname] = content;
 
-}
-
-void serverside_sheet::reset_undo()
-{
-
+	std::string result = "change " + cellname + ":" + content + (char)3;
+	return result;
 }
