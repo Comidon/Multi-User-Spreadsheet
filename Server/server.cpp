@@ -338,14 +338,19 @@ void server::process_load(int socket, std::string ss )
 	// if the spreadsheetname vector contains the ss, load
 	if(std::find(*ssnamelist.begin(), *ssnamelist.end(), ss) != *ssnamelist.end())
 	{
-		// append .txt and convert ss string to char*
-		ss.append(".txt");
-		const char *ssfile = ss.c_str();
-		// requires that the ss file to be under the current directory
-		std::ifstream infile(ssfile);
-		std::string line;
-		
+		// check if ssn_sso_map contains the ss (in case of server delete the obj)
+		if(std::find(*ssn_sso_map.begin(), *ssn_sso_map.end(), ss) != *ssn_sso_map.end())
+		{
+
 		}
+		else{
+
+		}
+
+		// call sss constructor
+
+
+	}
 	// otherwise, create
 	else {
 	}

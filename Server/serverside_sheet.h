@@ -20,7 +20,7 @@ private:
 
 public:
 	serverside_sheet() {};
-	//spreadsheet_graph(std::string filename, bool exist) {};
+	serverside_sheet(std::string filename) {};
 	~serverside_sheet() {};
 	std::string edit(std::string cell, std::string content);
 	std::string get_sheet();

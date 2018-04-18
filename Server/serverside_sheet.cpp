@@ -1,6 +1,27 @@
 #include "serverside_sheet.h"
 // Last Modified : April 17th, 2018
 
+serverside_sheet::serverside_sheet(std::string filename)
+{
+	// append .txt and convert ss string to char*
+	ss.append(".txt");
+	const char *ssfile = ss.c_str();
+	// requires that the ss file to be under the current directory
+	std::ifstream infile(ssfile);
+
+	while (true)
+	{
+		std::string line;
+		infile >> line;
+		if (infile.fail())
+			break;
+
+		// not finishied
+
+	}
+
+}
+
 std::string serverside_sheet::edit(std::string cell, std::string content)
 {
 	for (int i = 0; i < cell.length(); i++)
@@ -11,6 +32,7 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 		std::pair<std::string, std::string> temp(cell, "");
 		undo_stack.push(temp);
 		std::vector<std::string> res_stack;
+		//
 		revert_map[cell] = std::vector<string>();
 		revert_map[cell].push_back("");
 	}
