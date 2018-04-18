@@ -339,24 +339,60 @@ void server::process_load(int socket, std::string ss )
 	if(std::find(*ssnamelist.begin(), *ssnamelist.end(), ss) != *ssnamelist.end())
 	{
 		// check if ssn_sso_map contains the ss (in case of server delete the obj)
-		if(std::find(*ssn_sso_map.begin(), *ssn_sso_map.end(), ss) != *ssn_sso_map.end())
+		if(ssn_sso_map.find(ss) != *ssn_sso_map.end())
 		{
+			// contains the ss, load the ss object
+			std::set<string> sheet = (*ssn_sso_map)[ss]->get_sheet();
+			std::set<string>::iterator it;
+			send_message(socket, "full_state ");
+			for (it = sheet.begin(); it != sheet.end(); ++it)
+			{
+				std::string s = *it;
+    		send_message(socket, s);
+			}
+			send_message(socket, (char)3);
 
 		}
 		else{
+			//construct the sso. add ssn,sso to ssn_sso_map
+			serverside_sheet* newsheet = new serverside_sheet(ss);
+
+			// add to the ssn_sso_map map
+			(*ssn_sso_map).insert(std::pair<std::string,serverside_sheet*>(ss,newsheet));
+
+			std::set<string> sheet = newsheet->get_sheet();
+			std::set<string>::iterator it;
+			// sent "full_state and all cellname:cell_content and \3 to client"
+			send_message(socket, "full_state ");
+			for (it = sheet.begin(); it != sheet.end(); ++it)
+			{
+				std::string s = *it;
+    		send_message(socket, s);
+			}
+			send_message(socket, (char)3);
 
 		}
-
-		// call sss constructor
-
 
 	}
 	// otherwise, create
 	else {
+		// add name to the ss list
+		(*ssnamelist).push_back(ss);
+		serverside_sheet* newsheet = new serverside_sheet(ss);
+		// add to the ssn_sso_map map
+		(*ssn_sso_map).insert(std::pair<std::string,serverside_sheet*>(ss,newsheet));
+
+		// sent "full_state and all cellname:cell_content and \3 to client"
+		std::set<string> sheet = newsheet->get_sheet();
+		std::set<string>::iterator it;
+		send_message(socket, "full_state ");
+		for (it = sheet.begin(); it != sheet.end(); ++it)
+		{
+			std::string s = *it;
+			send_message(socket, s);
+		}
+		send_message(socket, (char)3);
 	}
-
-
-
 }
 
 void server::process_ping(int socket )

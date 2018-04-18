@@ -50,7 +50,8 @@ private:
 	// <socket,spreadsheet_name>
 	std::map<int, std::string> *socket_ssn_map;
 	// <spreadsheet_name,spreadsheet_object>
-	std::map<std::string, std::serverside_sheet*> *ssn_sso_map;
+	std::map<std::string, serverside_sheet*> *ssn_sso_map;
+	std::map<std::string, std::set<int> > *ssn_socketset_map;
 
 	void open();
 	void process_request(int socket, std::string input);

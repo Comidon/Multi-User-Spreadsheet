@@ -23,7 +23,7 @@ public:
 	serverside_sheet(std::string filename) {};
 	~serverside_sheet() {};
 	std::string edit(std::string cell, std::string content);
-	std::string get_sheet();
+	std::set<string> get_sheet();
 	std::string undo();
 	std::string revert(std::string cellname);
 	int size();

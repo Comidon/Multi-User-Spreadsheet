@@ -49,15 +49,15 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 	return true;
 }
 
-std::string serverside_sheet::get_sheet()
+std::set<string> serverside_sheet::get_sheet()
 {
-	std::string sheet = "";
+	std::set<string> res;
 	for (std::map<char, int>::iterator it = cells.begin(); it != cells.end(); ++it)
 	{
-		sheet += it->first + ":" + it->second + "\n";
+		std::string cell = it->first + ":" + it->second + "\n";
+		res.insert(cell);
 	}
-	sheet += (char)3;
-	return sheet;
+	return res;
 }
 
 std::string serverside_sheet::undo()
