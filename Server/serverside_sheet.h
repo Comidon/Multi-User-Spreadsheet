@@ -4,9 +4,10 @@
 
 #include <map>
 #include <string>
+#include <string.h>
+#include <fstream>
 #include <iostream>
 #include <vector>
-//#include <boost/regex.hpp>
 #include <cctype> // toupper
 #include <stack>
 #include <set>
@@ -21,7 +22,7 @@ private:
 
 public:
 	serverside_sheet() {};
-	serverside_sheet(std::string filename) {};
+	serverside_sheet(std::string filename);
 	~serverside_sheet() {};
 	std::string edit(std::string cell, std::string content);
 	std::set<std::string> get_sheet();

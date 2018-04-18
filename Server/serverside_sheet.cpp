@@ -1,22 +1,23 @@
 #include "serverside_sheet.h"
 // Last Modified : April 17th, 2018
 
-serverside_sheet::serverside_sheet(std::string filename)
+serverside_sheet::serverside_sheet(std::string s)
 {
 	// append .txt and convert ss string to char*
-	ss.append(".txt");
-	const char *ssfile = ss.c_str();
+	//s.append(".txt");
+	//const char *ssfile = ss.c_str();
 	// requires that the ss file to be under the current directory
-	std::ifstream infile(ssfile);
+	//const char* const ss = s.c_str();
+	std::ifstream inFile((s + ".txt").c_str());
 
 	while (true)
 	{
 		std::string line;
-		infile >> line;
-		if (infile.fail())
+		inFile >> line;
+		if (inFile.fail())
 			break;
 
-		string::size_type pos;
+		std::string::size_type pos;
 		pos = line.find(':', 0);
 
 		std::string cell_name = line.substr(0, pos);
@@ -25,7 +26,7 @@ serverside_sheet::serverside_sheet(std::string filename)
 		this->cells.insert(std::pair<std::string,std::string>(cell_name,cell_content));
 
 	}
-	infile.close();
+	inFile.close();
 
 }
 
@@ -40,7 +41,7 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 		undo_stack.push(temp);
 		std::vector<std::string> res_stack;
 		//
-		revert_map[cell] = std::vector<string>();
+		revert_map[cell] = std::vector<std::string>();
 		revert_map[cell].push_back("");
 	}
 
@@ -53,13 +54,14 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 
 	// If there were no circuluar dependencies, it is safe to add to the graph.
 	cells[cell] = content;
-	return true;
+	std::string result = "change " + cell + ":" + content + "\3";
+	return result;
 }
 
-std::set<string> serverside_sheet::get_sheet()
+std::set<std::string> serverside_sheet::get_sheet()
 {
-	std::set<string> res;
-	for (std::map<char, int>::iterator it = cells.begin(); it != cells.end(); ++it)
+	std::set<std::string> res;
+	for (std::map<std::string, std::string>::iterator it = cells.begin(); it != cells.end(); ++it)
 	{
 		std::string cell = it->first + ":" + it->second + "\n";
 		res.insert(cell);
@@ -81,22 +83,22 @@ std::string serverside_sheet::undo()
 	// Update the graph.
 	cells[cell] = content;
 
-	std::string result = "change " + cell + ":" + content + (char)3;
+	std::string result = "change " + cell + ":" + content + "\3";
 	return result;
 }
 
 std::string serverside_sheet::revert(std::string cellname)
 {
-	if (revert_map[cellname] == 0)
+	if (revert_map[cellname].size() == 0)
 		return "";
 	std::string content = revert_map[cellname].back();
 	revert_map[cellname].pop_back();
 
-	std::pair<std::string, std::string> temp(cell, cells[cell]);
+	std::pair<std::string, std::string> temp(cellname, cells[cellname]);
 	undo_stack.push(temp);
 
 	cells[cellname] = content;
 
-	std::string result = "change " + cellname + ":" + content + (char)3;
+	std::string result = "change " + cellname + ":" + content + "\3";
 	return result;
 }

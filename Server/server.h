@@ -44,9 +44,11 @@ public:
 	~server();
 
 private:
+  std::string c3;
 	std::vector<int> *sockets;
 	std::vector<std::string> *ssnamelist;
 	std::map<int, std::string> *socket_user_map;
+  std::map<std::string, int> cmd_look_up;
 	// <socket,spreadsheet_name>
 	std::map<int, std::string> *socket_ssn_map;
 	// <spreadsheet_name,spreadsheet_object>
