@@ -6,9 +6,10 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include <boost/regex.hpp>
+//#include <boost/regex.hpp>
 #include <cctype> // toupper
 #include <stack>
+#include <set>
 
 class serverside_sheet
 {
@@ -23,7 +24,7 @@ public:
 	serverside_sheet(std::string filename) {};
 	~serverside_sheet() {};
 	std::string edit(std::string cell, std::string content);
-	std::set<string> get_sheet();
+	std::set<std::string> get_sheet();
 	std::string undo();
 	std::string revert(std::string cellname);
 };
