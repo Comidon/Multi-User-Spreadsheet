@@ -6,21 +6,19 @@
  */
 #include "server.h"
 
+
 // helper function for socket connection purposes
 void *get_in_addr(struct sockaddr *sa);
 
-// private helper function for ease of use of strings in C
-std::string int_to_string(int a);
 server * iserver = new server();
 /*
 * Main function creates and runs this spreadsheet server
 */
 int main()
 {
+	std::cout << "Server on." << std::endl;
 	// Default port 2112
-	int port = 2112;
-	std::cout << "Server on work." << std::endl;
-	iserver->listen_for_connections(int_to_string(port));
+	iserver->listen_for_connections("2112");
 	return 0;
 }
 
@@ -33,8 +31,6 @@ void *thread_init(void * arg)
 	int * socket;
 	socket = (int *)arg;
 
-	std::cout << "New thread created for socket " + int_to_string((*socket)) << std::endl;
-
 	// Begin listening to messages from the new client on the new thread.
 	iserver->listen_to_client(*socket);
 }
@@ -45,22 +41,11 @@ void *server_end(void * arg)
 	while (1)
 	{
 		std::cin >> input;
-		if (input == "kill")
+		if (input == "quit")
 		{
 			exit(0);
 		}
 	}
-}
-
-/*
-* Helper method to convert an integer to a string.
-*/
-std::string int_to_string(int a)
-{
-	std::string result;
-	std::stringstream out;
-	out << a;
-	return out.str();
 }
 
 /*
@@ -81,6 +66,7 @@ server::server()
 	cmd_look_up["undo"] = 8;
 	cmd_look_up["revert"] = 9;
 
+	ping_clock = clock();
 	sockets = new std::vector<int>();
 	ssnamelist = new std::vector<std::string>();
 	socket_user_map = new std::map<int, std::string>();
@@ -159,21 +145,18 @@ void server::listen_for_connections(std::string port)
 
 	printf("Waiting for connection from clients...\n");
 
-	pthread_t end_thread;
-	int end;
-	int endint = 1;
-	end = pthread_create(&end_thread, NULL, &server_end, &endint);
-	if (end != 0)
+	pthread_t exiter;
+	//int end;
+	//int endint = 1;
+	//end = pthread_create(&end_thread, NULL, &server_end, &endint);
+	if (pthread_create(&exiter, NULL, &server_end, NULL) != 0)
 	{
 		printf("Error creating new pthread\n");
 		exit(EXIT_FAILURE);
 	}
 
-
-	// Main listening thread! (for new connections)
 	while (true)
 	{
-
 		sin_size = sizeof client_addr;
 
 		// Accept call is BLOCKING until a client connects
@@ -221,11 +204,22 @@ void *get_in_addr(struct sockaddr *sa)
 */
 void server::listen_to_client(int socket)
 {
-	bool registered = false;  // Bool used for authentication flag for this sockeerver_end� was not t.
+	clock_t ping_response_clock = clock();
 	std::string temp = "";
 	int received;             // How much data has come through on the socket.
 	while (1)
 	{
+		if ((clock() - ping_clock) * 1.0 / CLOCKS_PER_SEC >= 10)
+		{
+			send_string(socket, "ping \3");
+			ping_clock = clock();
+		}
+
+		if ((clock() - ping_clock) * 1.0 / CLOCKS_PER_SEC >= 60)
+		{
+			process_disconnect(socket);
+		}
+
 		char msg[1];
 		received = recv(socket, msg, 1, 0); // Recieve and process one byte at a time
 		if (received < 1) // Something went wrong (most likely client disconnect)
@@ -233,8 +227,7 @@ void server::listen_to_client(int socket)
 		// new line character found, process the message
 		if (msg[0] == (char)3)
 		{
-std::cout << temp << std::endl;
-			process_request(socket, temp);
+			process_request(socket, temp, ping_response_clock);
 			temp = "";
 		}
 		else
@@ -247,32 +240,24 @@ std::cout << temp << std::endl;
 	pthread_exit(NULL); // Kill this thread
 }
 
-/*
-* Send a specified string over the specified socket with
-* a newline character appended to the end.
-*/
-void server::send_message(int socket, std::string temp)
-{
-	send(socket, temp.c_str(), temp.length(), 0);
-}
+
 
 /*
 * Takes in the message sent from the client,  figures out what
 * the message is, and call the correct function associated with
 * that message.
 */
-void server::process_request(int socket, std::string input )
+void server::process_request(int socket, std::string input, clock_t& ping_response_clock)
 {
 	std::string::size_type pos;
 	pos = input.find(' ', 0);
 
 	std::string key = input.substr(0, pos);
 	std::string content = input.substr(pos + 1);
-std::cout << "on request" << std::endl;
+
 	switch (cmd_look_up[key])
 	{
 	case 0:
-          std::cout << "should do" << std::endl;
 		process_register(socket);
 		break;
 
@@ -285,11 +270,12 @@ std::cout << "on request" << std::endl;
 		break;
 
 	case 3:
+		std::cout << "on ping" << std::endl;
 		process_ping(socket);
 		break;
 
 	case 4:
-		process_ping_response(socket);
+		process_ping_response(socket, ping_response_clock);
 		break;
 
 	case 5:
@@ -314,10 +300,7 @@ std::cout << "on request" << std::endl;
 
 	default:
 		break;
-
 	}
-	//else // Junk recieved... send error 2
-	//send_message(socket, "error 2 " + input);
 }
 
 /*
@@ -327,24 +310,17 @@ std::cout << "on request" << std::endl;
 */
 void server::process_register(int socket)
 {
-
-	// This flag is used in other functions to make sure that
-	// a socket trying to make changes has been approved to
-	// make changes.
-	//registered = true;
-	send_message(socket, "connect_accepted ");
+	send_string(socket, "connect_accepted ");
 	for (int i = 0; i < (*ssnamelist).size(); i++)
      {
 		if (i == (*ssnamelist).size() - 1)
 		{
-			send_message(socket, (*ssnamelist)[i]);
+			send_string(socket, (*ssnamelist)[i]);
 		}
 		else
-			send_message(socket, (*ssnamelist)[i] + "\n");
+			send_string(socket, (*ssnamelist)[i] + "\n");
 	}
-     std::cout << "sent" << std::endl;
-	send_message(socket, "\3");
-std::cout << "sent" << std::endl;
+	send_string(socket, "\3");
 }
 
 
@@ -369,13 +345,13 @@ void server::process_load(int socket, std::string ss )
 			// contains the ss, load the ss object
 			std::set<std::string> sheet = (*ssn_sso_map)[ss]->get_sheet();
 			std::set<std::string>::iterator it;
-			send_message(socket, "full_state ");
+			send_string(socket, "full_state ");
 			for (it = sheet.begin(); it != sheet.end(); ++it)
 			{
 				std::string s = *it;
-    		send_message(socket, s);
+    		send_string(socket, s);
 			}
-			send_message(socket, "\3");
+			send_string(socket, "\3");
 
 		}
 		else{
@@ -392,13 +368,13 @@ void server::process_load(int socket, std::string ss )
 			std::set<std::string> sheet = newsheet->get_sheet();
 			std::set<std::string>::iterator it;
 			// sent "full_state and all cellname:cell_content and \3 to client"
-			send_message(socket, "full_state ");
+			send_string(socket, "full_state ");
 			for (it = sheet.begin(); it != sheet.end(); ++it)
 			{
 				std::string s = *it;
-    		send_message(socket, s);
+    		send_string(socket, s);
 			}
-			send_message(socket, "\3");
+			send_string(socket, "\3");
 
 		}
 
@@ -419,26 +395,25 @@ void server::process_load(int socket, std::string ss )
 		// sent "full_state and all cellname:cell_content and \3 to client"
 		std::set<std::string> sheet = newsheet->get_sheet();
 		std::set<std::string>::iterator it;
-		send_message(socket, "full_state ");
+		send_string(socket, "full_state ");
 		for (it = sheet.begin(); it != sheet.end(); ++it)
 		{
 			std::string s = *it;
-			send_message(socket, s);
+			send_string(socket, s);
 		}
-		send_message(socket, "\3");
+		send_string(socket, "\3");
 	}
 }
 
-void server::process_ping(int socket )
+void server::process_ping(int socket)
 {
-
-
+	std::cout << "sent" << std::endl;
+	send_string(socket, "ping_response \3");
 }
 
-void server::process_ping_response(int socket )
+void server::process_ping_response(int socket, clock_t& ping_response_clock)
 {
-
-
+	ping_response_clock = clock();
 }
 
 void server::process_edit(int socket, std::string content )
@@ -453,33 +428,34 @@ void server::process_edit(int socket, std::string content )
 
 	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*ssn_socketset_map)[(*socket_ssn_map)[socket]].end(); ++it)
 	{
-		send_message(*it, update);
+		send_string(*it, update);
 	}
 }
 
 void server::process_focus(int socket, std::string cell )
 {
+	std::string sckt = num2string(socket);
 	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*ssn_socketset_map)[(*socket_ssn_map)[socket]].end(); ++it)
 	{
-		send_message(*it, "focus " + cell + ":");
+		send_string(*it, "focus " + cell + ":" + sckt + "\3");
 	}
 }
 
 void server::process_unfocus(int socket)
 {
+	std::string sckt = num2string(socket);
 	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*ssn_socketset_map)[(*socket_ssn_map)[socket]].end(); ++it)
 	{
-		send_message(*it, "unfocus ");
+		send_string(*it, "unfocus " + sckt + "\3");
 	}
 }
 
 void server::process_undo(int socket)
 {
 	std::string update = (*ssn_sso_map)[(*socket_ssn_map)[socket]]->undo();
-
 	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*ssn_socketset_map)[(*socket_ssn_map)[socket]].end(); ++it)
 	{
-		send_message(*it, update);
+		send_string(*it, update);
 	}
 }
 
@@ -488,6 +464,25 @@ void server::process_revert(int socket, std::string cell )
 	std::string update = (*ssn_sso_map)[(*socket_ssn_map)[socket]]->revert(cell);
 	for (std::set<int>::iterator it = (*ssn_socketset_map)[(*socket_ssn_map)[socket]].begin(); it != (*ssn_socketset_map)[(*socket_ssn_map)[socket]].end(); ++it)
 	{
-		send_message(*it, update);
+		send_string(*it, update);
 	}
+}
+
+/*
+ * Citation : http://www.cplusplus.com/articles/D9j2Nwbp/
+ */
+std::string server::num2string(int Number)
+{
+	std::ostringstream ss;
+	ss << Number;
+	return ss.str();
+}
+
+/*
+ * Send a specified string over the specified socket with
+ * a newline character appended to the end.
+ */
+void server::send_string(int socket, std::string temp)
+{
+	send(socket, temp.c_str(), temp.length(), 0);
 }
