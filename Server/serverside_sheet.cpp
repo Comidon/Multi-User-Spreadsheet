@@ -32,6 +32,7 @@ serverside_sheet::serverside_sheet(std::string s)
 
 std::string serverside_sheet::edit(std::string cell, std::string content)
 {
+	pthread_mutex_lock(&mtx);
 	for (int i = 0; i < cell.length(); i++)
 		cell[i] = toupper(cell[i]);
 
@@ -54,23 +55,27 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 
 	// If there were no circuluar dependencies, it is safe to add to the graph.
 	cells[cell] = content;
+	pthread_mutex_unlock(&mtx);
 	std::string result = "change " + cell + ":" + content + "\3";
 	return result;
 }
 
 std::set<std::string> serverside_sheet::get_sheet()
 {
+	pthread_mutex_lock(&mtx);
 	std::set<std::string> res;
 	for (std::map<std::string, std::string>::iterator it = cells.begin(); it != cells.end(); ++it)
 	{
 		std::string cell = it->first + ":" + it->second + "\n";
 		res.insert(cell);
 	}
+	pthread_mutex_unlock(&mtx);
 	return res;
 }
 
 std::string serverside_sheet::undo()
 {
+	pthread_mutex_lock(&mtx);
 	if (undo_stack.size() == 0)
 		return "";
 
@@ -82,6 +87,7 @@ std::string serverside_sheet::undo()
 
 	// Update the graph.
 	cells[cell] = content;
+	pthread_mutex_unlock(&mtx);
 
 	std::string result = "change " + cell + ":" + content + "\3";
 	return result;
@@ -89,6 +95,7 @@ std::string serverside_sheet::undo()
 
 std::string serverside_sheet::revert(std::string cellname)
 {
+	pthread_mutex_lock(&mtx);
 	if (revert_map[cellname].size() == 0)
 		return "";
 	std::string content = revert_map[cellname].back();
@@ -98,7 +105,7 @@ std::string serverside_sheet::revert(std::string cellname)
 	undo_stack.push(temp);
 
 	cells[cellname] = content;
-
+	pthread_mutex_unlock(&mtx);
 	std::string result = "change " + cellname + ":" + content + "\3";
 	return result;
 }
