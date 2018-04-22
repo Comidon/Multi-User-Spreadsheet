@@ -48,8 +48,8 @@ public:
 	void send_string(int socket, std::string s);
 	// process disconnect request
 	void process_disconnect(int socket);
-
-	// void save_all_open_sheets();
+	// save all opened spreadsheets
+	void save_all_open_sheets();
 
 private:
 	/* * -Data- * */

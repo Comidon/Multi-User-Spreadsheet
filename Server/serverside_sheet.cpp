@@ -18,31 +18,24 @@
  */
 serverside_sheet::serverside_sheet(std::string s)
 {
-	// append .txt and convert ss string to char*
-	//s.append(".txt");
-	//const char *ssfile = ss.c_str();
-	// requires that the ss file to be under the current directory
-	//const char* const ss = s.c_str();
-	std::ifstream inFile((s + ".txt").c_str());
+	std::ifstream inFile((s + ".bfst").c_str());
+	std::string line;
 
-	while (true)
+	while (std::getline(inFile, line))
 	{
-		std::string line;
-		inFile >> line;
-		if (inFile.fail())
-			break;
+		if (line != "")
+		{
+			std::string::size_type pos;
+			pos = line.find(':', 0);
 
-		std::string::size_type pos;
-		pos = line.find(':', 0);
+			std::string cell_name = line.substr(0, pos);
+			std::string cell_content = line.substr(pos + 1);
 
-		std::string cell_name = line.substr(0, pos);
-		std::string cell_content = line.substr(pos + 1);
-
-		this->cells.insert(std::pair<std::string,std::string>(cell_name,cell_content));
-
+			this->cells.insert(std::pair<std::string, std::string>(cell_name, cell_content));
+		}
 	}
-	inFile.close();
 
+	inFile.close();
 }
 
 /*

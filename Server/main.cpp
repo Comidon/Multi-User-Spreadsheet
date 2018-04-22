@@ -166,6 +166,7 @@ static void *wait_quit(void * arg)
 		std::cin >> input;
 		if (input == "quit")
 		{
+			iserver->save_all_open_sheets();
 			exit(0);
 		}
 	}
