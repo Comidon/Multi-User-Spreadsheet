@@ -5,14 +5,15 @@
  *
  * Team : Bluefly
  *
- * Last Modified : April 20th, 2018
+ * Last Modified : April 22th, 2018
  */
 
 #include "server.h"
 
 /*
  * Constructor:
- *  mapping command names to an id, that's it :)
+ *  mapping command names to an id,
+ *    then read sheet names from namelist
  */
 server::server()
 {
@@ -88,7 +89,7 @@ void server::save_all_open_sheets()
  * Parse the message to see what type of request it is
  *  then process the request
  */
-void server::process_request(int socket, std::string message, clock_t& ping_response_clock)
+void server::process_request(int socket, std::string message, time_t& ping_response_clock)
 {
 	// split by the first white space
 	std::string::size_type pos;
@@ -159,12 +160,16 @@ void server::process_register(int socket)
 
 	/* * * * * * * * * * * * * * * * * * * * * * */
 	sockets.push_back(socket);
+	/* * * * * * * * * * * * * * * * * * * * * * */
+
+	// unlock
+	pthread_mutex_unlock(&mtx);
 
 	// send response
 	send_string(socket, "connect_accepted ");
 	// send sheet names
 	for (int i = 0; i < ssnamelist.size(); i++)
-     {
+    {
 		if (i == ssnamelist.size() - 1)
 		{
 			send_string(socket, ssnamelist[i]);
@@ -172,10 +177,6 @@ void server::process_register(int socket)
 		else
 			send_string(socket, ssnamelist[i] + "\n");
 	}
-	/* * * * * * * * * * * * * * * * * * * * * * */
-
-	// unlock
-	pthread_mutex_unlock(&mtx);
 
 	// send terminator
 	send_string(socket, "\3");
@@ -247,17 +248,23 @@ void server::process_load(int socket, std::string ss)
 	}
 	// otherwise, create
 	else {
+		std::ofstream outfile((ss + ".bfst").c_str());
+		if (!outfile.is_open())
+		{
+			send_string(socket, "file_load_error \3");
+			return;
+		}
+		outfile.close();
+
 		// add name to the ss list
 		ssnamelist.push_back(ss);
 		serverside_sheet* newsheet = new serverside_sheet(ss);
 		// add to the ssn_sso_map map
-		ssn_sso_map.insert(std::pair<std::string,serverside_sheet*>(ss,newsheet));
-		socket_ssn_map.insert(std::pair<int,std::string>(socket,ss));
+		ssn_sso_map.insert(std::pair<std::string, serverside_sheet*>(ss, newsheet));
+		socket_ssn_map.insert(std::pair<int, std::string>(socket, ss));
 		std::set<int> sockets;
 		sockets.insert(socket);
-		ssn_socketset_map.insert(std::pair<std::string,std::set<int> >(ss,sockets));
-		std::ofstream outfile((ss + ".bfst").c_str());
-		outfile.close();
+		ssn_socketset_map.insert(std::pair<std::string, std::set<int> >(ss, sockets));
 
 		std::ofstream sfile;
 
@@ -293,9 +300,9 @@ void server::process_ping(int socket)
 /*
  * Reset the ping response timer on receiving reponse message of a client
  */
-void server::process_ping_response(int socket, clock_t& ping_response_clock)
+void server::process_ping_response(int socket, time_t& ping_response_clock)
 {
-	ping_response_clock = clock();
+	ping_response_clock = time(NULL);
 }
 
 /*
@@ -311,7 +318,7 @@ void server::process_edit(int socket, std::string content)
 	std::string cell_content = content.substr(pos + 1);
 
 	// lock
-	pthread_mutex_lock(&mtx);
+	//pthread_mutex_lock(&mtx);
 
 	/* * * * * * * * * * * * * * * * * * * * * * */
 	// perform the edit
@@ -325,7 +332,7 @@ void server::process_edit(int socket, std::string content)
 	/* * * * * * * * * * * * * * * * * * * * * * */
 
 	// unlock
-	pthread_mutex_unlock(&mtx);
+	//pthread_mutex_unlock(&mtx);
 }
 
 /*
@@ -336,7 +343,7 @@ void server::process_focus(int socket, std::string cell)
 	std::string sckt = num2string(socket);
 	// inform clients
 	// lock
-	pthread_mutex_lock(&mtx);
+	//pthread_mutex_lock(&mtx);
 
 	/* * * * * * * * * * * * * * * * * * * * * * */
 	for (std::set<int>::iterator it = ssn_socketset_map[socket_ssn_map[socket]].begin(); it != ssn_socketset_map[socket_ssn_map[socket]].end(); ++it)
@@ -346,7 +353,7 @@ void server::process_focus(int socket, std::string cell)
 	/* * * * * * * * * * * * * * * * * * * * * * */
 
 	// unlock
-	pthread_mutex_unlock(&mtx);
+	//pthread_mutex_unlock(&mtx);
 }
 
 /*
@@ -357,7 +364,7 @@ void server::process_unfocus(int socket)
 	std::string sckt = num2string(socket);
 	// inform clients
 	// lock
-	pthread_mutex_lock(&mtx);
+	//pthread_mutex_lock(&mtx);
 
 	/* * * * * * * * * * * * * * * * * * * * * * */
 	for (std::set<int>::iterator it = ssn_socketset_map[socket_ssn_map[socket]].begin(); it != ssn_socketset_map[socket_ssn_map[socket]].end(); ++it)
@@ -367,7 +374,7 @@ void server::process_unfocus(int socket)
 	/* * * * * * * * * * * * * * * * * * * * * * */
 
 	// unlock
-	pthread_mutex_unlock(&mtx);
+	//pthread_mutex_unlock(&mtx);
 }
 
 /*
@@ -376,7 +383,7 @@ void server::process_unfocus(int socket)
 void server::process_undo(int socket)
 {
 	// lock
-	pthread_mutex_lock(&mtx);
+	//pthread_mutex_lock(&mtx);
 
 	/* * * * * * * * * * * * * * * * * * * * * * */
 	// perform undo
@@ -389,7 +396,7 @@ void server::process_undo(int socket)
 	/* * * * * * * * * * * * * * * * * * * * * * */
 
 	// unlock
-	pthread_mutex_unlock(&mtx);
+	//pthread_mutex_unlock(&mtx);
 }
 
 /*
@@ -398,7 +405,7 @@ void server::process_undo(int socket)
 void server::process_revert(int socket, std::string cell)
 {
 	// lock
-	pthread_mutex_lock(&mtx);
+	//pthread_mutex_lock(&mtx);
 
 	/* * * * * * * * * * * * * * * * * * * * * * */
 	// perform revert
@@ -411,7 +418,7 @@ void server::process_revert(int socket, std::string cell)
 	/* * * * * * * * * * * * * * * * * * * * * * */
 
 	// unlock
-	pthread_mutex_unlock(&mtx);
+	//pthread_mutex_unlock(&mtx);
 }
 
 /*
@@ -431,4 +438,15 @@ std::string server::num2string(int Number)
 void server::send_string(int socket, std::string temp)
 {
 	send(socket, temp.c_str(), temp.length(), 0);
+}
+
+/*
+ * Send disconnect to all connected clients
+ */
+void server::disconnect_all()
+{
+	for (int i = 0; i < sockets.size(); i++)
+	{
+		send_string(sockets[i], "disconnect \3");
+	}
 }

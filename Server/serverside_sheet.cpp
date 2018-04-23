@@ -44,13 +44,12 @@ serverside_sheet::serverside_sheet(std::string s)
  */
 std::string serverside_sheet::edit(std::string cell, std::string content)
 {
-	// lock
-	pthread_mutex_lock(&mtx);
-
-	/* * * * * * * * * * * * * * * * * * * * * * */
 	for (int i = 0; i < cell.length(); i++)
 		cell[i] = toupper(cell[i]);
 
+	// lock
+	pthread_mutex_lock(&mtx);
+	/* * * * * * * * * * * * * * * * * * * * * * */
 	// If the cell doesn't exist in the sheet,
 	//   add it to the cells container.
 	if (cells.find(cell) == cells.end())
@@ -73,13 +72,12 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
 		// Push the cellname and its old cell content to the undo stack
 		undo_stack.push(std::make_pair(cell, cells[cell]));
 	}
+	/* * * * * * * * * * * * * * * * * * * * * * */
+	// unlock
+	pthread_mutex_unlock(&mtx);
 
 	// Update the cell content.
 	cells[cell] = content;
-	/* * * * * * * * * * * * * * * * * * * * * * */
-
-	// unlock
-	pthread_mutex_unlock(&mtx);
 
 	// return the message for informing clients
 	return "change " + cell + ":" + content + "\3";
@@ -91,10 +89,6 @@ std::string serverside_sheet::edit(std::string cell, std::string content)
  */
 std::string serverside_sheet::undo()
 {
-	// lock
-	pthread_mutex_lock(&mtx);
-
-	/* * * * * * * * * * * * * * * * * * * * * * */
 	// If undo stack is empty, return empty string (clients do nothing)
 	if (undo_stack.size() == 0)
 		return "";
@@ -102,17 +96,20 @@ std::string serverside_sheet::undo()
 	// Get the last edit
 	std::string cell = undo_stack.top().first;
 	std::string content = undo_stack.top().second;
+
+	// lock
+	pthread_mutex_lock(&mtx);
+	/* * * * * * * * * * * * * * * * * * * * * * */
 	undo_stack.pop();
+	/* * * * * * * * * * * * * * * * * * * * * * */
+	// unlock
+	pthread_mutex_unlock(&mtx);
 
 	// Push the current value of the cell to its revert stack
 	revert_map[cell].push_back(cells[cell]);
 
 	// Update cell content
 	cells[cell] = content;
-	/* * * * * * * * * * * * * * * * * * * * * * */
-
-	// unlock
-	pthread_mutex_unlock(&mtx);
 
 	// return the message for informing clients
 	return "change " + cell + ":" + content + "\3";
@@ -123,17 +120,22 @@ std::string serverside_sheet::undo()
  */
 std::string serverside_sheet::revert(std::string cellname)
 {
-	// lock
-	pthread_mutex_lock(&mtx);
-
-	/* * * * * * * * * * * * * * * * * * * * * * */
 	// If the revert stack is empty, return empty string (clients do nothing)
 	if (revert_map[cellname].size() == 0)
 		return "";
 
 	// Get the cell's old value
 	std::string content = revert_map[cellname].back();
+
+	// lock
+	pthread_mutex_lock(&mtx);
+
+	/* * * * * * * * * * * * * * * * * * * * * * */
 	revert_map[cellname].pop_back();
+	/* * * * * * * * * * * * * * * * * * * * * * */
+
+	// unlock
+	pthread_mutex_unlock(&mtx);
 
 	// Since revert is considered as edit, push the current value to undo stack before revert
 	std::pair<std::string, std::string> temp(cellname, cells[cellname]);
@@ -141,10 +143,6 @@ std::string serverside_sheet::revert(std::string cellname)
 
 	// Update cell's content
 	cells[cellname] = content;
-	/* * * * * * * * * * * * * * * * * * * * * * */
-
-	// unlock
-	pthread_mutex_unlock(&mtx);
 
 	// return the message for informing clients
 	return "change " + cellname + ":" + content + "\3";
@@ -155,10 +153,6 @@ std::string serverside_sheet::revert(std::string cellname)
  */
 std::set<std::string> serverside_sheet::get_sheet()
 {
-	// lock
-	pthread_mutex_lock(&mtx);
-
-	/* * * * * * * * * * * * * * * * * * * * * * */
 	std::set<std::string> res;
 	// Go through the cells container and insert cells to a set
 	for (std::map<std::string, std::string>::iterator it = cells.begin(); it != cells.end(); ++it)
@@ -167,9 +161,6 @@ std::set<std::string> serverside_sheet::get_sheet()
 		std::string cell = it->first + ":" + it->second + "\n";
 		res.insert(cell);
 	}
-	/* * * * * * * * * * * * * * * * * * * * * * */
 
-	// unlock
-	pthread_mutex_unlock(&mtx);
 	return res;
 }

@@ -43,7 +43,9 @@ public:
 	server();
 	~server();
 	// process general request
-	void process_request(int socket, std::string input, clock_t& ping_response_clock);
+	void process_request(int socket, std::string input, time_t& ping_response_clock);
+	// send disconnect to all connected clients
+	void disconnect_all();
 	// send a string through a socket
 	void send_string(int socket, std::string s);
 	// process disconnect request
@@ -78,7 +80,7 @@ private:
 	// process ping request
 	void process_ping(int socket);
 	// process ping response request
-	void process_ping_response(int socket, clock_t& ping_response_clock);
+	void process_ping_response(int socket, time_t& ping_response_clock);
 	// process edit request
 	void process_edit(int socket, std:: string s);
 	// process focus request

@@ -1,12 +1,24 @@
+/* main.cpp
+ *
+ * contains tcp netcode and main method to run the server
+ *
+ * Team : Bluefly
+ *
+ * Last Modified : April 22th, 2018
+ */
+
 #include "server.h"
+
 static void *wait_quit(void * arg);
 static void *kick_to_listen(void * arg);
 static void listen_for_connections(std::string port);
 
-server * iserver = new server();
+static server * working_server;
 
 int main()
 {
+	// construct the server
+	working_server = new server();
 	// start the server on port 2112
 	std::cout << "Server on." << std::endl;
 	listen_for_connections("2112");
@@ -14,72 +26,76 @@ int main()
 }
 
 /*
-* Kicks off the server listening and accepting connections.
-* When a connection is made, the a new thread is made to listen
-* for messages from the client over the socket.
-*/
+ * Netcode:
+ *  listen for new incoming connections
+ *  when new connection arrives, start a new thread to listen from the client
+ */
 static void listen_for_connections(std::string port)
 {
-	int sockfd, new_fd;                   // listen on sock_fd, new connection on new_fd
-	struct addrinfo hints, *servinfo, *p; // hints used for connection flexibility
-	struct sockaddr_storage client_addr;  // connector's address information
+	int sockfd, new_fd;
+	struct addrinfo hints, *servinfo, *p;
+	struct sockaddr_storage client_addr;
 	socklen_t sin_size;
 	int yes = 1;
 	int rv;
 
-	memset(&hints, 0, sizeof hints); // allocate memory for hints
+	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
 
-	if ((rv = getaddrinfo(NULL, port.c_str(), &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(NULL, port.c_str(), &hints, &servinfo)) != 0)
+	{
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return;
 	}
 
 	// loop through all the results and bind to the first we can
-	for (p = servinfo; p != NULL; p = p->ai_next) {
-		if ((sockfd = socket(p->ai_family, p->ai_socktype,
-			p->ai_protocol)) == -1) {
-			perror("server: socket");
+	for (p = servinfo; p != NULL; p = p->ai_next)
+	{
+		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+		{
 			continue;
 		}
 
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-			sizeof(int)) == -1) {
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+		{
 			perror("setsockopt");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		// Bind the server socket to listen to this IP and port
-		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1)
+		{
 			close(sockfd);
-			perror("server: bind");
 			continue;
 		}
 		break;
 	}
 
-	// if something went wrong when trying to use the port, print error and return
-	if (p == NULL) {
-		fprintf(stderr, "server: failed to bind\n");
-		return;
+	// Exit if something goes wrong when binding
+	if (p == NULL)
+	{
+		std::cout << "Failed to bind." << std::endl;
+		exit(EXIT_FAILURE);
 	}
 
-	freeaddrinfo(servinfo); // all done with this structure
+	freeaddrinfo(servinfo);
 
-	if (listen(sockfd, SOMAXCONN) == -1) {
+	if (listen(sockfd, SOMAXCONN) == -1)
+	{
 		perror("listen");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
-	printf("Waiting for connection from clients...\n");
+	std::cout << "Start listening for connections." << std::endl;
 
+
+	// Create a thread to listen for shut down command
 	pthread_t exiter;
-
 	if (pthread_create(&exiter, NULL, &wait_quit, NULL) != 0)
 	{
-		printf("Error creating new pthread\n");
+		std::cout << "Failed creating new pthread." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -89,75 +105,81 @@ static void listen_for_connections(std::string port)
 
 		// Accept call is BLOCKING until a client connects
 		new_fd = accept(sockfd, (struct sockaddr *)&client_addr, &sin_size);
-		if (new_fd == -1) {
-			perror("accept");
+		if (new_fd == -1)
+		{
 			continue;
 		}
-
-		// create new thread to handle this connection on this socket.
+		
+		// Create a thread to listen to a client
 		pthread_t new_thread;
-		int ret;
-		int * socket_ID = &new_fd;
-		ret = pthread_create(&new_thread, NULL, &kick_to_listen, socket_ID);
-		if (ret != 0)
+		if (pthread_create(&new_thread, NULL, &kick_to_listen, &new_fd))
 		{
-			printf("Error creating new pthread\n");
+			std::cout << "Failed creating new pthread." << std::endl;
 			exit(EXIT_FAILURE);
 		}
+		std::cout << "client accepted" << std::endl;
 	}
 	return;
 }
 
 /*
-* Continually listens and reads in messages from clients on the given socket.
-* Once a new line character is detected, the request is processed and sent
-* off to be interpreted in process_request. This method also detects when
-* a client has disconnected, and saves the spreadsheet accordingly.
-*/
+ * Continually read message from a socket.
+ * Process request on receiving a terminator (\3).
+ * Ping the client every 10 seconds.
+ * If the client doesn't reponse in 60 seconds, disconnect it.
+ */
 void listen_to_client(int socket)
 {
-	clock_t ping_clock = clock();
-	clock_t ping_response_clock = clock();
-	std::string temp = "";
-	int received;             // How much data has come through on the socket.
-	while (1)
+	// timers used to ping
+	time_t ping_clock, ping_response_clock;
+	time(&ping_clock);
+	time(&ping_response_clock);
+
+	// char pointer used to store single byte of message
+	char msg[1];
+
+	std::string request = "";
+
+	while (recv(socket, msg, 1, 0) >= 1)
 	{
-		if ((clock() - ping_clock) * 1.0 / CLOCKS_PER_SEC >= 10)
+		if (time(NULL) - ping_clock >= 10)
 		{
-			iserver->send_string(socket, "ping \3");
-			ping_clock = clock();
+			// Ping the client
+			working_server->send_string(socket, "ping \3");
+			ping_clock = time(NULL);
 		}
 
-		if ((clock() - ping_response_clock) * 1.0 / CLOCKS_PER_SEC >= 60)
+		if (time(NULL) - ping_response_clock >= 60)
 		{
-			iserver->process_disconnect(socket);
+			// Disconnect the client
+			working_server->send_string(socket, "disconnect \3");
+			working_server->process_disconnect(socket);
 		}
 
-		char msg[1];
-		received = recv(socket, msg, 1, 0); // Recieve and process one byte at a time
-		if (received < 1) // Something went wrong (most likely client disconnect)
-			break;
-		// new line character found, process the message
+		// If a terminator is received, process the message
 		if (msg[0] == (char)3)
 		{
-			iserver->process_request(socket, temp, ping_response_clock);
-			temp = "";
+			working_server->process_request(socket, request, ping_response_clock);
+			request = "";
 		}
+		// else, append message string
 		else
-			temp += msg[0];
+			request += msg[0];
 	}
 
-	// Client has disconnected at this point!
+	// client was somehow disconnected unexpectedly
+	working_server->send_string(socket, "disconnect \3");
 	close(socket);
 	std::cout << "client disconnected" << std::endl;
-	pthread_exit(NULL); // Kill this thread
+	pthread_exit(NULL);
 }
 
 
 /*
-* Send a specified string over the specified socket with
-* a newline character appended to the end.
-*/
+ * Specify a thread to listen to cin.
+ * When "quit" is detected from cin,
+ * save all sheets, then shut down the server
+ */
 static void *wait_quit(void * arg)
 {
 	std::string input;
@@ -166,21 +188,16 @@ static void *wait_quit(void * arg)
 		std::cin >> input;
 		if (input == "quit")
 		{
-			iserver->save_all_open_sheets();
+			working_server->save_all_open_sheets();
 			exit(0);
 		}
 	}
 }
 
 /*
-* Static method for thread initialization. Required by the pthread_create function.
-*/
-static void *kick_to_listen(void * arg)
+ * Specify a thread to listen to a socket
+ */
+static void *kick_to_listen(void* socket_ptr)
 {
-	// The parameter will be an integer specifying the connected client's socket.
-	int * socket;
-	socket = (int *)arg;
-
-	// Begin listening to messages from the new client on the new thread.
-	listen_to_client(*socket);
+	listen_to_client(*((int*)socket_ptr));
 }

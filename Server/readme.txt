@@ -15,6 +15,18 @@ After compilation, type "./server" in the shell.
 To shut down the server, type "quit" in the shell.
 
 
+* How are spreadsheets saved?
+
+spreadsheets are saved when the server quits. They are saved into .bfst files (bluefly spreadsheet).
+Each line in a .bfst file represents a cell. Please don't modify .bfst files.
+
+
+* What is the sheets.txt?
+
+sheets.txt is used to store all the existing sheet names. Please don't modify it.
+
+
+
 
 ** Thanks for reading :) **
 
