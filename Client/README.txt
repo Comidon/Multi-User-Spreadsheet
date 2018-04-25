@@ -1,0 +1,7 @@
+"Enter the target server hostname in textbox and press connect button"
+"Choose a existing spreadsheet or enter the name of a new spreadsheet then press join button"
+"Use mouse or arrow keys for selecting cells. "
+"Press Enter key to edit celss" 
+"Press Enter Again to close edit text box"
+"Clicking on Action button for Revert or Undo actions on the current selected cell"
+"The result will be sent to server."
